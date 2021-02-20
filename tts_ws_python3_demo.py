@@ -83,12 +83,11 @@ class Ws_Param(object):
         url = url + '?' + urlencode(v)
         # print("date: ", date)
         # print("v: ", v)
-        print('websocket url :', url)
+        # print('websocket url :', url)
         return url
 
 
 def on_message(ws, message):
-    print(message)
     try:
         message = json.loads(message)
         code = message["code"]
