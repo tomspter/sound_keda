@@ -28,6 +28,7 @@ from datetime import datetime
 from time import mktime
 import _thread as thread
 import os
+import pymysql
 
 STATUS_FIRST_FRAME = 0  # 第一帧的标识
 STATUS_CONTINUE_FRAME = 1  # 中间帧标识
@@ -35,11 +36,12 @@ STATUS_LAST_FRAME = 2  # 最后一帧的标识
 
 
 class Ws_Param(object):
-    def __init__(self, Text):
+    def __init__(self, Text, ID):
         self.APPID = "5c30acb5"
         self.APIKey = "32a467f5485c798e213534b3b93b06a3"
         self.APISecret = "b80af2c7319de717f7a052582e8ac68b"
         self.Text = Text
+        self.ID = ID
 
         self.CommonArgs = {"app_id": self.APPID}
         self.BusinessArgs = {"aue": "lame",
@@ -79,8 +81,8 @@ class Ws_Param(object):
         }
         # 拼接鉴权参数，生成url
         url = url + '?' + urlencode(v)
-        print("date: ", date)
-        print("v: ", v)
+        # print("date: ", date)
+        # print("v: ", v)
         print('websocket url :', url)
         return url
 
@@ -101,7 +103,7 @@ def on_message(ws, message):
             errMsg = message["message"]
             print("sid:%s call error:%s code is:%s" % (sid, errMsg, code))
         else:
-            with open('./' + wsParam.Text + '.mp3', 'ab') as f:
+            with open('./name/' + wsParam.ID + '.mp3', 'ab') as f:
                 f.write(audio)
     except Exception as e:
         print("receive msg,but parse exception:", e)
@@ -133,11 +135,20 @@ def on_open(ws):
 
 
 if __name__ == "__main__":
-    name_list = ["管若屹", "李浩喆", "慕志锋", "高硕"]
-    for name in name_list:
-        wsParam = Ws_Param(Text=name)
-        websocket.enableTrace(True)
+    db = pymysql.connect(host="localhost", port=3306, user="root", password="123456", database="sound_keda",
+                         charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("select * from user_sound")
+    data = cursor.fetchall()
+    print(data)
+
+    # name_list = ["管若屹", "李浩喆", "慕志锋", "高硕"]
+    for item in data:
+        wsParam = Ws_Param(Text=item[1], ID=item[2])
+        websocket.enableTrace(False)
         wsUrl = wsParam.create_url()
         ws = websocket.WebSocketApp(wsUrl, on_message=on_message, on_error=on_error, on_close=on_close)
         ws.on_open = on_open
         ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+
+    db.close()
